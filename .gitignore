@@ -1,0 +1,7 @@
+metaplex-decoder
+metaplex_decoder
+records*/*.json
+records*/.listers
+config.yml
+*.json
+errors.log

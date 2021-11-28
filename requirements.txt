@@ -1,0 +1,7 @@
+requests
+simplejson
+pandas
+numpy
+solana
+aiofiles
+aiohttp
