@@ -64,14 +64,11 @@ Example:
 then
 
 ```
-python3 src/airdrop.py --token-account <TOKEN_ADDRESS> --fee-payer <path_to.json> --config <path_to_config.yml> --exclude <Address> --reward <number>
+python3 src/airdrop.py --token-account <TOKEN_ADDRESS> --fee-payer <path_to.json> --config <path_to_config.yml>
 
 Example:
     python3 ./src/airdrop.py \
     --token-account 00000000000000000000000000000000000000000000 \
     --fee-payer fee_payer.json \
     --config config.yml \
-    --exclude "burner" \
-    --exclude "magic eden" \
-    --reward 69420
 ```
