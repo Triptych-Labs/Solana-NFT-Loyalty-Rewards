@@ -12,8 +12,9 @@ import numpy
 import math
 import aiofiles as aiof
 import time
+import aiohttp
 
-CHUNK_SIZE = 100
+CHUNK_SIZE = 5
 
 loop = asyncio.get_event_loop()
 
@@ -74,6 +75,16 @@ class postTokenbalances:
         self.uiTokenAmount = uiTokenAmountCls(**uiTokenAmount)  # type: ignore
 
 
+async def EvaluateTokenMetadata(uri: str):
+    attributes = {}
+    async with aiohttp.ClientSession() as client:
+        _body = await client.get(uri)
+        attributes = json.loads(await _body.text())["attributes"]
+
+    attrs_df = pandas.json_normalize(attributes)
+    return json.dumps(attrs_df.to_dict(orient="records"))
+
+
 async def GetTokenMeta(program: typing.Tuple[AsyncClient, str], t, symbol: str):
     client, endpoint = program
     if os.path.exists(f"records/{str(getattr(t, 'signature'))}.json"):
@@ -104,6 +115,7 @@ async def GetTokenMeta(program: typing.Tuple[AsyncClient, str], t, symbol: str):
         if metadata["symbol"] != symbol:
             # must be irrelevant token
             return
+        uri = metadata["uri"]
 
         try:
             owners: dict = await client.get_token_largest_accounts(mint_address)  # type: ignore
@@ -122,7 +134,8 @@ async def GetTokenMeta(program: typing.Tuple[AsyncClient, str], t, symbol: str):
         _owner: str = owner_meta["result"]["value"]["data"]["parsed"]["info"]["owner"]
 
         ownership_df = pandas.DataFrame(
-            [[_owner, mint_address]], columns=["owner", "mint_address"]
+            [[_owner, mint_address, uri]],
+            columns=["owner", "mint_address", "uri"],
         )
 
         async with aiof.open(f"records/{str(getattr(t, 'signature'))}.json", "wb") as f:
@@ -182,10 +195,14 @@ async def FetchTransactions(
     signatures = pandas.DataFrame()
 
     before = ""
+    i = 0
     while True:
         scraped = pandas.DataFrame(
             await GetHistory(program, public_key, 1000, before, "")
         )
+        if i > 0:
+            break
+        i = i + 1
         if len(scraped):
             signatures = signatures.append(scraped)
 
@@ -197,7 +214,7 @@ async def FetchTransactions(
 
     valid_mints = signatures[signatures["err"].isin([None])]
     valid_mints = valid_mints.reset_index()
-    await GetTokenMetas(program, valid_mints[::-1][1800:], symbol)
+    await GetTokenMetas(program, valid_mints[::-1], symbol)
 
 
 async def parse_opts(opts, expected_opts) -> typing.Tuple[str, str, str]:
